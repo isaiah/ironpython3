@@ -619,6 +619,15 @@ class K(object):
         }
 
         [Test]
+        public static void ScenarioComprehensionScope() {
+            var engine = Python.CreateEngine();
+            var scope = engine.CreateScope();
+            var source = engine.CreateScriptSourceFromString("assert [lambda: i for i in [1,2]][0]() == 2");
+            var compiledCode = source.Compile();
+            compiledCode.Execute(scope);
+        }
+
+        [Test]
         public static void ScenarioInterfaceExtensions() {
             var engine = Python.CreateEngine();
             engine.Runtime.LoadAssembly(typeof(Fooable).Assembly);

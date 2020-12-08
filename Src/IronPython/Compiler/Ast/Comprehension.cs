@@ -70,6 +70,11 @@ namespace IronPython.Compiler.Ast {
             _iterators = iterators;
             Scope = new ComprehensionScope(this);
         }
+        public ListComprehension(Expression item, ComprehensionIterator[] iterators, ScopeStatement scope) {
+            Item = item;
+            _iterators = iterators;
+            Scope = (ComprehensionScope) scope;
+        }
 
         public Expression Item { get; }
 

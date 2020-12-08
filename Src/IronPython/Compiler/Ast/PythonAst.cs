@@ -739,7 +739,7 @@ namespace IronPython.Compiler.Ast {
                     return PythonAst._globalContext;
                 }
 
-                // we need to re-write nested scoeps
+                // we need to re-write nested scopes
                 if (node is ScopeStatement scope) {
                     return base.VisitExtension(VisitScope(scope));
                 }
@@ -752,7 +752,13 @@ namespace IronPython.Compiler.Ast {
                     return base.VisitExtension(new GeneratorExpression((FunctionDefinition)VisitScope(generator.Function), generator.Iterable));
                 }
 
-                // update the global get/set/raw gets variables
+                if (node is ListComprehension comp) {
+                    var arr = new ComprehensionIterator[comp.Iterators.Count];
+                    comp.Iterators.CopyTo(arr, 0);
+                    var compScope = VisitScope(comp.Scope);
+                    return base.VisitExtension(new ListComprehension(comp.Item, arr, compScope));
+                }
+
                 if (node is PythonGlobalVariableExpression global) {
                     return new LookupGlobalVariable(
                         _curScope == null ? PythonAst._globalContext : _curScope.LocalContext,

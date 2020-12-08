@@ -162,6 +162,15 @@ class ClosureTest(unittest.TestCase):
 
         self.assertEqual(f(), 29)
 
+    def test_ipy3_gh817(self):
+        """https://github.com/IronLanguages/ironpython3/issues/817"""
+        for x in [lambda: i for i in [1,2]]:
+            self.assertEqual(x(), 2)
+
+        self.assertEqual([tuple(i for j in [1]) for i in [1]], [(1,)])
+
+        self.assertEqual({i: tuple(j for j in t if i != j) for t in ((1,2),) for i in t}, {1: (2,), 2: (1,)})
+
     def test_generators(self):
         def f():
             x = 10
