@@ -752,11 +752,12 @@ namespace IronPython.Compiler.Ast {
                     return base.VisitExtension(new GeneratorExpression((FunctionDefinition)VisitScope(generator.Function), generator.Iterable));
                 }
 
-                if (node is ListComprehension comp) {
-                    var arr = new ComprehensionIterator[comp.Iterators.Count];
-                    comp.Iterators.CopyTo(arr, 0);
-                    var compScope = VisitScope(comp.Scope);
-                    return base.VisitExtension(new ListComprehension(comp.Item, arr, compScope));
+                if (node is ListComprehension listcomp) {
+                    Statement originalBody = new ExpressionStatement(listcomp);
+                    originalBody.Parent = listcomp.Parent;
+                    Statement body = new RewrittenBodyStatement(originalBody, listcomp.Reduce());
+                    FunctionDefinition fd = new FunctionDefinition("<listcomp>", new Compiler.Ast.Parameter[] { }, body);
+                    return new LambdaExpression((FunctionDefinition)VisitScope(fd));
                 }
 
                 if (node is PythonGlobalVariableExpression global) {
