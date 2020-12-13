@@ -2486,6 +2486,45 @@ namespace IronPython.Compiler {
             return ret;
         }
 
+
+        private FunctionDefinition ParseComp(Expression expr, Expression initVal, string method) {
+            NameExpression tmp = new NameExpression("__comp_$_ret__");
+            AssignmentStatement assign = new AssignmentStatement(new []{ tmp }, initVal);
+            ForStatement root = ParseGenExprFor();
+            Statement current = root;
+
+            for (; ; ) {
+                if (PeekToken(Tokens.KeywordForToken)) {
+                    current = NestGenExpr(current, ParseGenExprFor());
+                } else if (PeekToken(Tokens.KeywordIfToken)) {
+                    current = NestGenExpr(current, ParseGenExprIf());
+                } else {
+                    // Generator Expressions have an implicit function definition and yield around their expression.
+                    //  ([ for i in R]
+                    // becomes:
+                    //   def f(): 
+                    //     tmp = []
+                    //     for i in R: tmp.append(i)
+                    //     return tmp
+                    CallExpression call = new CallExpression(new MemberExpression(tmp, method), new[]{ new Arg(expr) });
+                    ExpressionStatement ys = new ExpressionStatement(call);
+                    ys.Expression.SetLoc(_globalParent, expr.IndexSpan);
+                    ys.SetLoc(_globalParent, expr.IndexSpan);
+                    NestGenExpr(current, ys);
+                    break;
+                }
+            }
+
+            // We pass the outermost iterable in as a parameter because Python semantics
+            // say that this one piece is computed at definition time rather than iteration time
+            const string fname = "<listcomp>";
+            SuiteStatement body = new SuiteStatement(new Statement[]{assign, root, new ReturnStatement(tmp)});
+            FunctionDefinition func = new FunctionDefinition(fname, new Parameter[0], body);
+            func.SetLoc(_globalParent, root.StartIndex, GetEnd());
+            func.HeaderIndex = root.EndIndex;
+            return func;   
+        }
+
         //  genexpr_for  ::= "for" target_list "in" or_test [genexpr_iter]
         //  genexpr_iter ::= (genexpr_for | genexpr_if) *
         //
@@ -2666,8 +2705,12 @@ namespace IronPython.Compiler {
         }
 
         // comp_iter '}'
-        private SetComprehension FinishSetComp(Expression item, int oStart, int oEnd) {
-            ComprehensionIterator[] iters = ParseCompIter();
+        private SetComprehension1 FinishSetComp(Expression expr, int oStart, int oEnd) {
+            SetExpression emptySet = new SetExpression();
+            FunctionDefinition func = ParseComp(expr, emptySet, "add");
+            var ret = new SetComprehension1(func);
+            // ret.SetLoc(_globalParent, expr.StartIndex, GetEnd());
+
             Eat(TokenKind.RightBrace);
 
             var cStart = GetStart();
@@ -2677,7 +2720,6 @@ namespace IronPython.Compiler {
                 new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)),
                 1);
 
-            var ret = new SetComprehension(item, iters);
             ret.SetLoc(_globalParent, oStart, cEnd);
             return ret;
         }
@@ -2765,9 +2807,10 @@ namespace IronPython.Compiler {
 
                     // comp_for
                     if (PeekToken(Tokens.KeywordForToken)) {
-                        // although it's calling ParseCompIter(), because the peek token is a FOR it is going to
-                        // do the right thing.
-                        ret = new ListComprehension(expr, ParseCompIter());
+                        ListExpression emptyList = new ListExpression();
+                        FunctionDefinition func = ParseComp(expr, emptyList, "append");
+                        ret = new ListComprehension1(func);
+                        ret.SetLoc(_globalParent, expr.StartIndex, GetEnd());
                     } else {
                         // (',' (test|star_expr))* [',']
                         var items = new List<Expression> { expr };

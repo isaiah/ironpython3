@@ -2850,6 +2850,11 @@ namespace IronPython.Runtime.Operations {
             return ((Func<PythonFunction, object, object>)func.__code__.Target)(func, input);
         }
 
+        public static object Invoke0(object function) {
+            PythonFunction func = (PythonFunction)function;
+            return ((Func<PythonFunction, object>)func.__code__.Target)(func);
+        }
+
         public static FunctionCode MakeFunctionCode(CodeContext/*!*/ context, string name, string documentation, string[] parameterNames, int argCount, FunctionAttributes flags, int startIndex, int endIndex, string path, Delegate code, string[] freeVars, string[] names, string[] cellVars, string[] varNames, int localCount) {
             Compiler.Ast.SerializedScopeStatement scope = new Compiler.Ast.SerializedScopeStatement(name, parameterNames, argCount, flags, startIndex, endIndex, path, freeVars, names, cellVars, varNames);
 

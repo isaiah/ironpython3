@@ -64,7 +64,10 @@ namespace IronPython.Compiler.Ast {
         public virtual bool Walk(ListComprehension node) { return true; }
         public virtual void PostWalk(ListComprehension node) { }
 
-        // ListExpression
+        public virtual bool Walk(ListComprehension1 node) { return true; }
+        public virtual void PostWalk(ListComprehension1 node) { }
+
+       // ListExpression
         public virtual bool Walk(ListExpression node) { return true; }
         public virtual void PostWalk(ListExpression node) { }
 
@@ -88,6 +91,9 @@ namespace IronPython.Compiler.Ast {
         // SetComprehension
         public virtual bool Walk(SetComprehension node) { return true; }
         public virtual void PostWalk(SetComprehension node) { }
+
+        public virtual bool Walk(SetComprehension1 node) { return false; }
+        public virtual void PostWalk(SetComprehension1 node) { }
 
         // SetExpression
         public virtual bool Walk(SetExpression node) { return true; }
@@ -312,6 +318,10 @@ namespace IronPython.Compiler.Ast {
         public override bool Walk(ListComprehension node) { return false; }
         public override void PostWalk(ListComprehension node) { }
 
+        public override bool Walk(ListComprehension1 node) { return false; }
+        public override void PostWalk(ListComprehension1 node) { }
+
+
         // ListExpression
         public override bool Walk(ListExpression node) { return false; }
         public override void PostWalk(ListExpression node) { }
@@ -335,6 +345,9 @@ namespace IronPython.Compiler.Ast {
         // SetComprehension
         public override bool Walk(SetComprehension node) { return false; }
         public override void PostWalk(SetComprehension node) { }
+        public override bool Walk(SetComprehension1 node) { return false; }
+        public override void PostWalk(SetComprehension1 node) { }
+
 
         // SetExpression
         public override bool Walk(SetExpression node) { return false; }
