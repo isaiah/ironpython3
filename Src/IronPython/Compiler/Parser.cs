@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Numerics;
+using System.Linq;
 using System.Text;
 
 using Microsoft.Scripting;
@@ -2487,7 +2488,7 @@ namespace IronPython.Compiler {
         }
 
 
-        private FunctionDefinition ParseComp(Expression expr, Expression initVal, string method) {
+        private FunctionDefinition ParseComp(Expression initVal, string method, string fname, params Expression[] elts) {
             NameExpression tmp = new NameExpression("__comp_$_ret__");
             AssignmentStatement assign = new AssignmentStatement(new []{ tmp }, initVal);
             ForStatement root = ParseGenExprFor();
@@ -2499,25 +2500,23 @@ namespace IronPython.Compiler {
                 } else if (PeekToken(Tokens.KeywordIfToken)) {
                     current = NestGenExpr(current, ParseGenExprIf());
                 } else {
-                    // Generator Expressions have an implicit function definition and yield around their expression.
+                    // Comprehensions have an implicit function definition
                     // [i for i in R]
                     // becomes:
                     //   def f(): 
                     //     tmp = []
                     //     for i in R: tmp.append(i)
                     //     return tmp
-                    CallExpression call = new CallExpression(new MemberExpression(tmp, method), new[]{ new Arg(expr) });
+                    Arg[] args = elts.Select(elt => new Arg(elt)).ToArray();
+                    CallExpression call = new CallExpression(new MemberExpression(tmp, method), args);
                     ExpressionStatement ys = new ExpressionStatement(call);
-                    ys.Expression.SetLoc(_globalParent, expr.IndexSpan);
-                    ys.SetLoc(_globalParent, expr.IndexSpan);
+                    ys.Expression.SetLoc(_globalParent, elts[0].IndexSpan);
+                    ys.SetLoc(_globalParent, elts[0].IndexSpan);
                     NestGenExpr(current, ys);
                     break;
                 }
             }
 
-            // We pass the outermost iterable in as a parameter because Python semantics
-            // say that this one piece is computed at definition time rather than iteration time
-            const string fname = "<listcomp>";
             SuiteStatement body = new SuiteStatement(new Statement[]{assign, root, new ReturnStatement(tmp)});
             FunctionDefinition func = new FunctionDefinition(fname, new Parameter[0], body);
             func.SetLoc(_globalParent, root.StartIndex, GetEnd());
@@ -2707,7 +2706,7 @@ namespace IronPython.Compiler {
         // comp_iter '}'
         private SetComprehension1 FinishSetComp(Expression expr, int oStart, int oEnd) {
             SetExpression emptySet = new SetExpression();
-            FunctionDefinition func = ParseComp(expr, emptySet, "add");
+            FunctionDefinition func = ParseComp(emptySet, "add", "<setcomp>", expr);
             var ret = new SetComprehension1(func);
             // ret.SetLoc(_globalParent, expr.StartIndex, GetEnd());
 
@@ -2725,18 +2724,21 @@ namespace IronPython.Compiler {
         }
 
         // comp_iter '}'
-        private DictionaryComprehension FinishDictComp(Expression key, Expression value, int oStart, int oEnd) {
-            ComprehensionIterator[] iters = ParseCompIter();
+        private DictionaryComprehension1 FinishDictComp(Expression key, Expression value, int oStart, int oEnd) {
+            var emptyDict = new DictionaryExpression();
+            FunctionDefinition func = ParseComp(emptyDict, "__setitem__", "<dictcomp>", key, value);
+            var ret = new DictionaryComprehension1(func);
+            // ret.SetLoc(_globalParent, expr.StartIndex, GetEnd());
+
             Eat(TokenKind.RightBrace);
 
             var cStart = GetStart();
             var cEnd = GetEnd();
-
             ParserSink?.MatchPair(
                 new SourceSpan(_tokenizer.IndexToLocation(oStart), _tokenizer.IndexToLocation(oEnd)),
                 new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)),
                 1);
-            var ret = new DictionaryComprehension(key, value, iters);
+
             ret.SetLoc(_globalParent, oStart, cEnd);
             return ret;
         }
@@ -2809,7 +2811,7 @@ namespace IronPython.Compiler {
                     // comp_for
                     if (PeekToken(Tokens.KeywordForToken)) {
                         ListExpression emptyList = new ListExpression();
-                        FunctionDefinition func = ParseComp(expr, emptyList, "append");
+                        FunctionDefinition func = ParseComp(emptyList, "append", "<listcomp>", expr);
                         ret = new ListComprehension1(func);
                         ret.SetLoc(_globalParent, expr.StartIndex, GetEnd());
                     } else {

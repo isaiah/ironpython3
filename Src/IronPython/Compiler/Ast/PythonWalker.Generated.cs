@@ -40,6 +40,10 @@ namespace IronPython.Compiler.Ast {
         public virtual bool Walk(DictionaryComprehension node) { return true; }
         public virtual void PostWalk(DictionaryComprehension node) { }
 
+        public virtual bool Walk(DictionaryComprehension1 node) { return true; }
+        public virtual void PostWalk(DictionaryComprehension1 node) { }
+
+
         // DictionaryExpression
         public virtual bool Walk(DictionaryExpression node) { return true; }
         public virtual void PostWalk(DictionaryExpression node) { }
@@ -293,6 +297,10 @@ namespace IronPython.Compiler.Ast {
         // DictionaryComprehension
         public override bool Walk(DictionaryComprehension node) { return false; }
         public override void PostWalk(DictionaryComprehension node) { }
+
+        public override bool Walk(DictionaryComprehension1 node) { return false; }
+        public override void PostWalk(DictionaryComprehension1 node) { }
+
 
         // DictionaryExpression
         public override bool Walk(DictionaryExpression node) { return false; }
