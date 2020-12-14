@@ -2500,7 +2500,7 @@ namespace IronPython.Compiler {
                     current = NestGenExpr(current, ParseGenExprIf());
                 } else {
                     // Generator Expressions have an implicit function definition and yield around their expression.
-                    //  ([ for i in R]
+                    // [i for i in R]
                     // becomes:
                     //   def f(): 
                     //     tmp = []
@@ -2759,6 +2759,7 @@ namespace IronPython.Compiler {
 
             return iters.ToArray();
         }
+
 
         // comp_for: 'for' exprlist 'in' or_test [comp_iter]
         private ComprehensionFor ParseCompFor() {

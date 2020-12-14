@@ -92,7 +92,7 @@ namespace IronPython.Compiler.Ast {
         public virtual bool Walk(SetComprehension node) { return true; }
         public virtual void PostWalk(SetComprehension node) { }
 
-        public virtual bool Walk(SetComprehension1 node) { return false; }
+        public virtual bool Walk(SetComprehension1 node) { return true; }
         public virtual void PostWalk(SetComprehension1 node) { }
 
         // SetExpression
