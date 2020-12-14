@@ -168,7 +168,7 @@ class ClosureTest(unittest.TestCase):
             self.assertEqual(x(), 2)
 
         self.assertEqual([tuple(i for j in [1]) for i in [1]], [(1,)])
-        self.assertEqual({tuple(i for j in [1]) for i in [1]}, {(1,)})
+        self.assertEqual({tuple(i for j in [1]) for i in [1]}, [(1,)])
 
         self.assertEqual({i: tuple(j for j in t if i != j) for t in ((1,2),) for i in t}, {1: (2,), 2: (1,)})
 
