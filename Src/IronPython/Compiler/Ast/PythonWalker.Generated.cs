@@ -65,9 +65,6 @@ namespace IronPython.Compiler.Ast {
         public virtual void PostWalk(LambdaExpression node) { }
 
         // ListComprehension
-        public virtual bool Walk(ListComprehension node) { return true; }
-        public virtual void PostWalk(ListComprehension node) { }
-
         public virtual bool Walk(ListComprehension1 node) { return true; }
         public virtual void PostWalk(ListComprehension1 node) { }
 
@@ -323,9 +320,6 @@ namespace IronPython.Compiler.Ast {
         public override void PostWalk(LambdaExpression node) { }
 
         // ListComprehension
-        public override bool Walk(ListComprehension node) { return false; }
-        public override void PostWalk(ListComprehension node) { }
-
         public override bool Walk(ListComprehension1 node) { return false; }
         public override void PostWalk(ListComprehension1 node) { }
 

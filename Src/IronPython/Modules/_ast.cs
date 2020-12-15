@@ -291,7 +291,7 @@ namespace IronPython.Modules {
                     ListExpression x => new List(x, ctx),
                     TupleExpression x => new Tuple(x, ctx),
                     DictionaryExpression x => new Dict(x),
-                    ListComprehension x => new ListComp(x),
+                    //ListComprehension1 x => new ListComp(x),
                     GeneratorExpression x => new GeneratorExp(x),
                     MemberExpression x => new Attribute(x, ctx),
                     YieldExpression x => new Yield(x),
@@ -299,8 +299,8 @@ namespace IronPython.Modules {
                     ConditionalExpression x => new IfExp(x),
                     IndexExpression x => new Subscript(x, ctx),
                     SetExpression x => new Set(x),
-                    DictionaryComprehension x => new DictComp(x),
-                    SetComprehension x => new SetComp(x),
+                    //DictionaryComprehension1 x => new DictComp(x),
+                    //SetComprehension1 x => new SetComp(x),
                     StarredExpression x => new Starred(x, ctx),
                     _ => throw new ArgumentTypeException("Unexpected expression type: " + expr.GetType()),
                 };
@@ -1279,40 +1279,6 @@ namespace IronPython.Modules {
         }
 
         [PythonType]
-        public class DictComp : expr {
-            public DictComp() {
-                _fields = PythonTuple.MakeTuple(new[] { nameof(key), nameof(value), nameof(generators) });
-            }
-
-            public DictComp(expr key, expr value, PythonList generators,
-                [Optional]int? lineno, [Optional]int? col_offset)
-                : this() {
-                this.key = key;
-                this.value = value;
-                this.generators = generators;
-                _lineno = lineno;
-                _col_offset = col_offset;
-            }
-
-            internal DictComp(DictionaryComprehension comp)
-                : this() {
-                key = Convert(comp.Key);
-                value = Convert(comp.Value);
-                generators = Convert(comp.Iterators);
-            }
-
-            internal override AstExpression Revert() {
-                return new DictionaryComprehension(expr.Revert(key), expr.Revert(value), comprehension.RevertComprehensions(generators));
-            }
-
-            public expr key { get; set; }
-
-            public expr value { get; set; }
-
-            public PythonList generators { get; set; }
-        }
-
-        [PythonType]
         public class Div : @operator {
             internal static readonly Div Instance = new Div();
             internal override PythonOperator Revert() => PythonOperator.TrueDivide;
@@ -1538,6 +1504,31 @@ namespace IronPython.Modules {
 
             public expr returns { get; set; }
         }
+        internal class ExtractListComprehensionIterators : PythonWalker {
+            private readonly List<ComprehensionIterator> _iterators = new List<ComprehensionIterator>();
+            public YieldExpression Yield;
+
+            public ComprehensionIterator[] Iterators {
+                get { return _iterators.ToArray(); }
+            }
+
+            public override bool Walk(ForStatement node) {
+                _iterators.Add(new ComprehensionFor(node.Left, node.List));
+                node.Body.Walk(this);
+                return false;
+            }
+
+            public override bool Walk(IfStatement node) {
+                _iterators.Add(new ComprehensionIf(node.Tests[0].Test));
+                node.Tests[0].Body.Walk(this);
+                return false;
+            }
+
+            public override bool Walk(YieldExpression node) {
+                Yield = node;
+                return false;
+            }
+        }
 
         [PythonType]
         public class GeneratorExp : expr {
@@ -1592,32 +1583,6 @@ namespace IronPython.Modules {
                 iters[0] = new ComprehensionFor(((ComprehensionFor)iters[0]).Left, expr.Iterable);
                 elt = Convert(walker.Yield.Expression);
                 generators = Convert(iters);
-            }
-
-            internal class ExtractListComprehensionIterators : PythonWalker {
-                private readonly List<ComprehensionIterator> _iterators = new List<ComprehensionIterator>();
-                public YieldExpression Yield;
-
-                public ComprehensionIterator[] Iterators {
-                    get { return _iterators.ToArray(); }
-                }
-
-                public override bool Walk(ForStatement node) {
-                    _iterators.Add(new ComprehensionFor(node.Left, node.List));
-                    node.Body.Walk(this);
-                    return false;
-                }
-
-                public override bool Walk(IfStatement node) {
-                    _iterators.Add(new ComprehensionIf(node.Tests[0].Test));
-                    node.Tests[0].Body.Walk(this);
-                    return false;
-                }
-
-                public override bool Walk(YieldExpression node) {
-                    Yield = node;
-                    return false;
-                }
             }
 
             // TODO: following 2 names are copy paste from Parser.cs
@@ -2043,24 +2008,45 @@ namespace IronPython.Modules {
                 _fields = PythonTuple.MakeTuple(new[] { nameof(elt), nameof(generators) });
             }
 
-            public ListComp(expr elt, PythonList generators, [Optional]int? lineno, [Optional]int? col_offset)
+            internal ListComp(ListComprehension1 comp)
                 : this() {
-                this.elt = elt;
-                this.generators = generators;
-                _lineno = lineno;
-                _col_offset = col_offset;
-            }
-
-            internal ListComp(ListComprehension comp)
-                : this() {
-                elt = Convert(comp.Item);
-                generators = Convert(comp.Iterators);
+                ExtractListComprehensionIterators walker = new ExtractListComprehensionIterators();
+                comp.Function.Body.Walk(walker);
+                ComprehensionIterator[] iters = walker.Iterators;
+                Debug.Assert(iters.Length != 0, "A list comprehension cannot have zero iterators.");
+                elt = Convert(comp.Elt);
+                generators = Convert(iters);
             }
 
             internal override AstExpression Revert() {
-                AstExpression item = expr.Revert(elt);
-                ComprehensionIterator[] iters = comprehension.RevertComprehensions(generators);
-                return new ListComprehension(item, iters);
+                ListExpression initVal = new ListExpression();
+                NameExpression tmp = new NameExpression("__comp_$_ret__");
+                AssignmentStatement assign = new AssignmentStatement(new []{ tmp }, initVal);
+                Statement returnStmt = new ReturnStatement(tmp);
+                int comprehensionIdx = generators.Count - 1;
+
+                Arg[] args = { new Arg(elt.Revert()) };
+                CallExpression call = new CallExpression(new MemberExpression(tmp, "append"), args);
+                Statement stmt = new ExpressionStatement(call);
+
+                AstExpression list;
+                do {
+                    comprehension c = (comprehension)generators[comprehensionIdx];
+                    if (c.ifs != null && c.ifs.Count != 0) {
+                        int ifIdx = c.ifs.Count - 1;
+                        while (ifIdx >= 0) {
+                            IfStatementTest ist = new IfStatementTest(expr.Revert(c.ifs[ifIdx]), stmt);
+                            stmt = new IfStatement(new IfStatementTest[] { ist }, null);
+                            ifIdx--;
+                        }
+                    }
+                    list = expr.Revert(c.iter);
+                    stmt = new ForStatement(expr.Revert(c.target), list, stmt, null);
+                    comprehensionIdx--;
+                } while (comprehensionIdx >= 0);
+                Statement body = new SuiteStatement(new[]{ assign, stmt, returnStmt });
+                FunctionDefinition functionDefinition = new FunctionDefinition("<listcomp>", new Parameter[0], stmt);
+                return new ListComprehension1(functionDefinition, elt.Revert());
             }
 
             public expr elt { get; set; }
@@ -2386,38 +2372,6 @@ namespace IronPython.Modules {
 
             public PythonList elts { get; set; }
         }
-
-        [PythonType]
-        public class SetComp : expr {
-            public SetComp() {
-                _fields = PythonTuple.MakeTuple(new[] { nameof(elt), nameof(generators) });
-            }
-
-            public SetComp(expr elt, PythonList generators, [Optional]int? lineno, [Optional]int? col_offset)
-                : this() {
-                this.elt = elt;
-                this.generators = generators;
-                _lineno = lineno;
-                _col_offset = col_offset;
-            }
-
-            internal SetComp(SetComprehension comp)
-                : this() {
-                elt = Convert(comp.Item);
-                generators = Convert(comp.Iterators);
-            }
-
-            internal override AstExpression Revert() {
-                AstExpression item = expr.Revert(elt);
-                ComprehensionIterator[] iters = comprehension.RevertComprehensions(generators);
-                return new SetComprehension(item, iters);
-            }
-
-            public expr elt { get; set; }
-
-            public PythonList generators { get; set; }
-        }
-
 
         [PythonType]
         public class Slice : slice {

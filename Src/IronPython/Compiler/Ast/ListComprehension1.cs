@@ -10,14 +10,16 @@ namespace IronPython.Compiler.Ast {
     using Ast = MSAst.Expression;
     public class ListComprehension1 : Expression {
 
-        public ListComprehension1(FunctionDefinition function) {
+        public ListComprehension1(FunctionDefinition function, Expression elt) {
             Function = function;
+            Elt = elt;
         }
         public override MSAst.Expression Reduce() {
             return Ast.Call(AstMethods.Invoke0, Function.MakeFunctionExpression());
         }
 
         public FunctionDefinition Function { get; }
+        public Expression Elt { get; }
 
         public override string NodeName => "list comprehension";
 

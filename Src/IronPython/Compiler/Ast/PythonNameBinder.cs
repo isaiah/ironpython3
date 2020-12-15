@@ -248,19 +248,9 @@ namespace IronPython.Compiler.Ast {
             return true;
         }
 
-        public override bool Walk(ListComprehension node) {
+        public override bool Walk(ListComprehension1 node) {
             node.Parent = _currentScope;
-            PushScope(node.Scope);
             return base.Walk(node);
-        }
-
-        public override void PostWalk(ListComprehension node) {
-            base.PostWalk(node);
-            PopScope();
-
-            if (node.Scope.NeedsLocalsDictionary) {
-                _currentScope.NeedsLocalsDictionary = true;
-            }
         }
 
         public override bool Walk(SetComprehension node) {

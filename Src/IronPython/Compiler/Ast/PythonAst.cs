@@ -753,7 +753,7 @@ namespace IronPython.Compiler.Ast {
                 }
 
                 if (node is ListComprehension1 listcomp) {
-                    return base.VisitExtension(new ListComprehension1((FunctionDefinition)VisitScope(listcomp.Function)));
+                    return base.VisitExtension(new ListComprehension1((FunctionDefinition)VisitScope(listcomp.Function), listcomp.Elt));
                 }
 
                 if (node is SetComprehension1 setcomp) {

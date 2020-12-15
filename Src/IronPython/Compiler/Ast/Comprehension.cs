@@ -61,60 +61,6 @@ namespace IronPython.Compiler.Ast {
             );
         }
     }
-
-    public sealed class ListComprehension : Comprehension {
-        private readonly ComprehensionIterator[] _iterators;
-
-        public ListComprehension(Expression item, ComprehensionIterator[] iterators) {
-            Item = item;
-            _iterators = iterators;
-            Scope = new ComprehensionScope(this);
-        }
-        public ListComprehension(Expression item, ComprehensionIterator[] iterators, ScopeStatement scope) {
-            Item = item;
-            _iterators = iterators;
-            Scope = (ComprehensionScope) scope;
-        }
-
-        public Expression Item { get; }
-
-        public override IList<ComprehensionIterator> Iterators => _iterators;
-
-        protected override MSAst.ParameterExpression MakeParameter()
-            => Ast.Parameter(typeof(PythonList), "list_comprehension_list");
-
-        protected override MethodInfo Factory() => AstMethods.MakeEmptyList;
-
-        public override Ast Reduce() => Scope.AddVariables(base.Reduce());
-
-        protected override Ast Body(MSAst.ParameterExpression res) {
-            return GlobalParent.AddDebugInfo(
-                Ast.Call(
-                    AstMethods.ListAddForComprehension,
-                    res,
-                    AstUtils.Convert(Item, typeof(object))
-                ),
-                Item.Span
-            );
-        }
-
-        public override string NodeName => "list comprehension";
-
-        public override void Walk(PythonWalker walker) {
-            if (walker.Walk(this)) {
-                Item?.Walk(walker);
-                if (_iterators != null) {
-                    foreach (ComprehensionIterator ci in _iterators) {
-                        ci.Walk(walker);
-                    }
-                }
-            }
-            walker.PostWalk(this);
-        }
-
-        internal ComprehensionScope Scope { get; }
-    }
-        
     public sealed class SetComprehension : Comprehension {
         private readonly ComprehensionIterator[] _iterators;
 

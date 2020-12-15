@@ -2812,7 +2812,7 @@ namespace IronPython.Compiler {
                     if (PeekToken(Tokens.KeywordForToken)) {
                         ListExpression emptyList = new ListExpression();
                         FunctionDefinition func = ParseComp(emptyList, "append", "<listcomp>", expr);
-                        ret = new ListComprehension1(func);
+                        ret = new ListComprehension1(func, expr);
                         ret.SetLoc(_globalParent, expr.StartIndex, GetEnd());
                     } else {
                         // (',' (test|star_expr))* [',']

@@ -15,7 +15,7 @@ using Microsoft.Scripting;
  * The only difference between the two is behavior on delete.
  * On delete, the name is not assigned to meaningful value (we need to check at runtime if it's initialized),
  * but it is not uninitialized either (because delete statement will set it to Uninitialized.instance).
- * This way, codegen doesn’t have to emit an explicit initialization for it.
+ * This way, codegen doesn't have to emit an explicit initialization for it.
  * 
  * Consider:
  * 
@@ -241,47 +241,13 @@ namespace IronPython.Compiler.Ast {
         public override bool Walk(LambdaExpression node) { return false; }
 
         // ListComp
-        public override bool Walk(ListComprehension node) {
-            BitArray save = _bits;
-            _bits = new BitArray(_bits);
-
-            foreach (ComprehensionIterator iter in node.Iterators) {
-                iter.Walk(this);
-            }
-            node.Item.Walk(this);
-
-            _bits = save;
-            return false;
-        }
+        public override bool Walk(ListComprehension1 node) => false;
 
         // SetComp
-        public override bool Walk(SetComprehension node) {
-            BitArray save = _bits;
-            _bits = new BitArray(_bits);
-
-            foreach (ComprehensionIterator iter in node.Iterators) {
-                iter.Walk(this);
-            }
-            node.Item.Walk(this);
-
-            _bits = save;
-            return false;
-        }
+        public override bool Walk(SetComprehension node) => false;
 
         // DictComp
-        public override bool Walk(DictionaryComprehension node) {
-            BitArray save = _bits;
-            _bits = new BitArray(_bits);
-
-            foreach (ComprehensionIterator iter in node.Iterators) {
-                iter.Walk(this);
-            }
-            node.Key.Walk(this);
-            node.Value.Walk(this);
-
-            _bits = save;
-            return false;
-        }
+        public override bool Walk(DictionaryComprehension node) => false;
 
         // NameExpr
         public override bool Walk(NameExpression node) {
