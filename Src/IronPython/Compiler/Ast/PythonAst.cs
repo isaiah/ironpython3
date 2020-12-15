@@ -760,6 +760,10 @@ namespace IronPython.Compiler.Ast {
                     return base.VisitExtension(new SetComprehension1((FunctionDefinition)VisitScope(setcomp.Function)));
                 }
 
+                if (node is DictionaryComprehension1 dictcomp) {
+                    return base.VisitExtension(new DictionaryComprehension1((FunctionDefinition)VisitScope(dictcomp.Function)));
+                }
+
                 if (node is PythonGlobalVariableExpression global) {
                     return new LookupGlobalVariable(
                         _curScope == null ? PythonAst._globalContext : _curScope.LocalContext,
