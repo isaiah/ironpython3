@@ -28,6 +28,7 @@ namespace IronPython.Compiler.Ast {
         public static readonly MethodInfo SaveCurrentException = GetMethod((Func<Exception>)PythonOps.SaveCurrentException);
         public static readonly MethodInfo RestoreCurrentException = GetMethod((Action<Exception>)PythonOps.RestoreCurrentException);
         public static readonly MethodInfo MakeGeneratorExpression = GetMethod((Func<object, object, object>)PythonOps.MakeGeneratorExpression);
+        public static readonly MethodInfo Invoke0 = GetMethod((Func<object, object>)PythonOps.Invoke0);
         public static readonly MethodInfo ListAddForComprehension = GetMethod((Action<PythonList, object>)PythonOps.ListAddForComprehension);
         public static readonly MethodInfo SetAddForComprehension = GetMethod((Action<SetCollection, object>)PythonOps.SetAddForComprehension);
         public static readonly MethodInfo DictAddForComprehension = GetMethod((Action<PythonDictionary, object, object>)PythonOps.DictAddForComprehension);

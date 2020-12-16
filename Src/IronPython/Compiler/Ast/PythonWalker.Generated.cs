@@ -85,6 +85,10 @@ namespace IronPython.Compiler.Ast {
         public virtual bool Walk(ParenthesisExpression node) { return true; }
         public virtual void PostWalk(ParenthesisExpression node) { }
 
+        // SelfExAnonymousFunc
+        public virtual bool Walk(SelfExAnonymousFunc node) { return true; }
+        public virtual void PostWalk(SelfExAnonymousFunc node) { }
+
         // SetComprehension
         public virtual bool Walk(SetComprehension node) { return true; }
         public virtual void PostWalk(SetComprehension node) { }
@@ -331,6 +335,10 @@ namespace IronPython.Compiler.Ast {
         // ParenthesisExpression
         public override bool Walk(ParenthesisExpression node) { return false; }
         public override void PostWalk(ParenthesisExpression node) { }
+
+        // SelfExAnonymousFunc
+        public override bool Walk(SelfExAnonymousFunc node) { return false; }
+        public override void PostWalk(SelfExAnonymousFunc node) { }
 
         // SetComprehension
         public override bool Walk(SetComprehension node) { return false; }

@@ -753,10 +753,8 @@ namespace IronPython.Compiler.Ast {
                 }
 
                 if (node is ListComprehension comp) {
-                    var arr = new ComprehensionIterator[comp.Iterators.Count];
-                    comp.Iterators.CopyTo(arr, 0);
-                    var compScope = VisitScope(comp.Scope);
-                    return base.VisitExtension(new ListComprehension(comp.Item, arr, compScope));
+                    var compScope = (FunctionDefinition) VisitScope(func(comp));
+                    return base.VisitExtension(new SelfExAnonymousFunc(compScope));
                 }
 
                 if (node is PythonGlobalVariableExpression global) {
@@ -793,6 +791,48 @@ namespace IronPython.Compiler.Ast {
                 }
 
                 return base.VisitExtension(node);
+            }
+
+            internal FunctionDefinition func(ListComprehension comp) {
+                ListExpression initVal = new ListExpression();
+                NameExpression tmp = new NameExpression("__comp_$_ret__");
+                AssignmentStatement assign = new AssignmentStatement(new []{ tmp }, initVal);
+                Statement returnStmt = new ReturnStatement(tmp);
+                IList<ComprehensionIterator> iters = comp.Iterators;
+
+                Arg[] args = { new Arg(comp.Item) };
+                CallExpression call = new CallExpression(new MemberExpression(tmp, "append"), args);
+                Statement stmt = new ExpressionStatement(call);
+
+                var cfCollector = new List<ComprehensionFor>();
+                var cifCollector = new List<List<ComprehensionIf>>();
+                List<ComprehensionIf> cif = null;
+                for (int i = 0; i < iters.Count; i++) {
+                    switch(iters[i]) {
+                        case ComprehensionFor cf:
+                            cfCollector.Add(cf);
+                            cif = new List<ComprehensionIf>();
+                            cifCollector.Add(cif);
+                            break;
+                        case ComprehensionIf ci:
+                            cif.Add(ci);
+                            break;
+                        default:
+                            throw new InvalidOperationException();
+                    }
+                }
+                int comprehensionIdx = cfCollector.Count - 1;
+                do {
+                    ComprehensionFor cf = cfCollector[comprehensionIdx];
+                    foreach (ComprehensionIf compif in cifCollector[comprehensionIdx]) {
+                        IfStatementTest ist = new IfStatementTest(compif.Test, stmt);
+                        stmt = new IfStatement(new IfStatementTest[] { ist }, null);
+                    }
+                    stmt = new ForStatement(cf.Left, cf.List, stmt, null);
+                    comprehensionIdx--;
+                } while (comprehensionIdx >= 0);
+                Statement body = new SuiteStatement(new[]{ assign, stmt, returnStmt });
+                return new FunctionDefinition("<listcomp>", new Parameter[0], body);
             }
 
             private ScopeStatement VisitScope(ScopeStatement scope) {
