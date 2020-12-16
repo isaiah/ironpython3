@@ -794,15 +794,21 @@ namespace IronPython.Compiler.Ast {
             }
 
             internal FunctionDefinition func(ListComprehension comp) {
+                PythonAst globalParent = comp.GlobalParent;
                 ListExpression initVal = new ListExpression();
                 NameExpression tmp = new NameExpression("__comp_$_ret__");
+                tmp.SetLoc(globalParent, comp.IndexSpan);
                 AssignmentStatement assign = new AssignmentStatement(new []{ tmp }, initVal);
+                assign.SetLoc(globalParent, comp.IndexSpan);
                 Statement returnStmt = new ReturnStatement(tmp);
+                returnStmt.SetLoc(globalParent, comp.IndexSpan);
                 IList<ComprehensionIterator> iters = comp.Iterators;
 
                 Arg[] args = { new Arg(comp.Item) };
                 CallExpression call = new CallExpression(new MemberExpression(tmp, "append"), args);
+                call.SetLoc(globalParent, comp.IndexSpan);
                 Statement stmt = new ExpressionStatement(call);
+                stmt.SetLoc(globalParent, comp.IndexSpan);
 
                 var cfCollector = new List<ComprehensionFor>();
                 var cifCollector = new List<List<ComprehensionIf>>();
@@ -826,13 +832,19 @@ namespace IronPython.Compiler.Ast {
                     ComprehensionFor cf = cfCollector[comprehensionIdx];
                     foreach (ComprehensionIf compif in cifCollector[comprehensionIdx]) {
                         IfStatementTest ist = new IfStatementTest(compif.Test, stmt);
+                        ist.SetLoc(globalParent, comp.IndexSpan);
                         stmt = new IfStatement(new IfStatementTest[] { ist }, null);
+                        stmt.SetLoc(globalParent, comp.IndexSpan);
                     }
                     stmt = new ForStatement(cf.Left, cf.List, stmt, null);
+                    stmt.SetLoc(globalParent, comp.IndexSpan);
                     comprehensionIdx--;
                 } while (comprehensionIdx >= 0);
                 Statement body = new SuiteStatement(new[]{ assign, stmt, returnStmt });
-                return new FunctionDefinition("<listcomp>", new Parameter[0], body);
+                body.SetLoc(comp.GlobalParent, comp.IndexSpan);
+                var f = new FunctionDefinition("<listcomp>", new Parameter[0], body);
+                f.SetLoc(comp.GlobalParent, comp.IndexSpan);
+                return f;
             }
 
             private ScopeStatement VisitScope(ScopeStatement scope) {
